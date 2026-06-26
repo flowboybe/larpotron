@@ -1,0 +1,39 @@
+package main
+
+import (
+	"fmt"
+	"net/http"
+	"net/url"
+	"os"
+
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	godotenv "github.com/joho/godotenv"
+)
+
+func main() {
+	err := godotenv.Load()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	proxyURL, err := url.Parse(os.Getenv("PROXY_URL"))
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	httpClient := &http.Client{
+		Transport: &http.Transport{
+			Proxy: http.ProxyURL(proxyURL),
+		},
+	}
+
+	bot, err := tgbotapi.NewBotAPIWithClient(os.Getenv("BOT_TOKEN"), tgbotapi.APIEndpoint, httpClient)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	fmt.Println(bot.Self.UserName, bot.Self.FirstName)
+}
