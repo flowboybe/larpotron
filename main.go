@@ -6,12 +6,17 @@ import (
 	"net/url"
 	"os"
 
+	proxyChecker "larpotron/proxyChecker"
+
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	godotenv "github.com/joho/godotenv"
 )
 
 func main() {
-	err := godotenv.Load()
+	c, err := proxyChecker.GetProxies()
+	fmt.Println(<-c)
+
+	err = godotenv.Load()
 	if err != nil {
 		fmt.Println(err)
 		return
