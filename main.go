@@ -14,7 +14,10 @@ import (
 
 func main() {
 	c, err := proxyChecker.GetProxies()
-	fmt.Println(<-c)
+	proxies := <-c
+	for _, val := range proxyChecker.GetNonRusProxies(proxies) {
+		fmt.Println(val)
+	}
 
 	err = godotenv.Load()
 	if err != nil {

@@ -40,7 +40,7 @@ func getProxiesIfUpdated() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return string(bodyBytes), nil
+	return string(bodyBytes)[1:len(bodyBytes)], nil
 }
 
 func GetProxies() (chan string, error) {
