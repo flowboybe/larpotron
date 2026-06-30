@@ -12,12 +12,6 @@ import (
 	godotenv "github.com/joho/godotenv"
 )
 
-func main() {
-	bot := buildBot()
-
-	fmt.Println(bot.Self.UserName, bot.Self.FirstName)
-}
-
 func buildBot() *tgbotapi.BotAPI {
 	var bot *tgbotapi.BotAPI
 	for bot == nil {
