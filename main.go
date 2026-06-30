@@ -2,55 +2,26 @@ package main
 
 import (
 	"fmt"
-	"larpotron/proxyChecker"
-	"net/http"
-	"net/url"
-	"os"
-	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	godotenv "github.com/joho/godotenv"
 )
 
 func main() {
 	bot := buildBot()
+	fmt.Println("Bot started")
 
-	fmt.Println(bot.Self.UserName, bot.Self.FirstName)
-}
+	config := tgbotapi.NewUpdate(-1)
+	config.Timeout = 60
 
-func buildBot() *tgbotapi.BotAPI {
-	var bot *tgbotapi.BotAPI
-	for bot == nil {
-		bot = buildBotIter()
-		time.Sleep(1 * time.Second)
+	updates := bot.GetUpdatesChan(config)
+
+	for update := range updates {
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "You said: "+update.Message.Text)
+		fmt.Printf("%v : %v\n", update.Message.Chat.UserName, update.Message.Text)
+
+		_, err := bot.Send(msg)
+		if err != nil {
+			fmt.Printf("Error: %v\n", err)
+		}
 	}
-	return bot
-}
-
-func buildBotIter() *tgbotapi.BotAPI {
-	err := godotenv.Load()
-	if err != nil {
-		fmt.Println(err)
-		return nil
-	}
-
-	proxyURL, err := url.Parse(proxyChecker.GetTgProxy())
-	if err != nil {
-		fmt.Println(err)
-		return nil
-	}
-
-	httpClient := &http.Client{
-		Transport: &http.Transport{
-			Proxy: http.ProxyURL(proxyURL),
-		},
-	}
-
-	bot, err := tgbotapi.NewBotAPIWithClient(os.Getenv("BOT_TOKEN"), tgbotapi.APIEndpoint, httpClient)
-	if err != nil {
-		fmt.Println(err)
-		return nil
-	}
-
-	return bot
 }
