@@ -43,12 +43,11 @@ func getProxiesIfUpdated() (string, error) {
 	return string(bodyBytes)[1:len(bodyBytes)], nil
 }
 
-func getProxies() (chan string, error) {
+func startProxyExtraction(c chan string) error {
 	str, err := getProxiesIfUpdated()
 	if err != nil {
-		return nil, err
+		return err
 	}
-	c := make(chan string, 1)
 	c <- str
 	go func() {
 		ticker := time.NewTicker(time.Hour)
@@ -63,5 +62,5 @@ func getProxies() (chan string, error) {
 			c <- newStr
 		}
 	}()
-	return c, nil
+	return nil
 }

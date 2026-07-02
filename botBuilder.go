@@ -12,23 +12,30 @@ import (
 	godotenv "github.com/joho/godotenv"
 )
 
+var goodProxyChan chan string
+
+func buildBotFirstTime() *tgbotapi.BotAPI {
+	goodProxyChan = proxyChecker.GetTgProxyChan()
+	return buildBot()
+}
+
 func buildBot() *tgbotapi.BotAPI {
 	var bot *tgbotapi.BotAPI
 	for bot == nil {
-		bot = buildBotIter()
+		bot = buildBotIter(goodProxyChan)
 		time.Sleep(1 * time.Second)
 	}
 	return bot
 }
 
-func buildBotIter() *tgbotapi.BotAPI {
+func buildBotIter(goodProxyChan chan string) *tgbotapi.BotAPI {
 	err := godotenv.Load()
 	if err != nil {
 		fmt.Println(err)
 		return nil
 	}
 
-	proxyURL, err := url.Parse(proxyChecker.GetTgProxy())
+	proxyURL, err := url.Parse(<-goodProxyChan)
 	if err != nil {
 		fmt.Println(err)
 		return nil

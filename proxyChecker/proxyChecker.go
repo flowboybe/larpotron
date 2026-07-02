@@ -1,16 +1,16 @@
 package proxyChecker
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/tidwall/gjson"
 )
+
+var proxyChannel = make(chan string, 1)
 
 func getNonRusProxies(proxies string) (nonRusProxies []string) {
 	gjson.ForEachLine(proxies, func(line gjson.Result) bool {
@@ -23,15 +23,12 @@ func getNonRusProxies(proxies string) (nonRusProxies []string) {
 	return
 }
 
-func сheckProxy(ctx context.Context, proxy string, goodProxyChan chan string) {
-	if ctx.Err() != nil {
-		return
-	}
+func checkProxy(proxy string, goodProxyChan chan string) {
 	proxyUrl, err := url.Parse(proxy)
 	if err != nil {
 		return
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodHead, "https://telegram.org", nil)
+	req, err := http.NewRequest(http.MethodHead, "https://api.telegram.org", nil)
 	if err != nil {
 		return
 	}
@@ -39,7 +36,7 @@ func сheckProxy(ctx context.Context, proxy string, goodProxyChan chan string) {
 		Transport: &http.Transport{
 			Proxy: http.ProxyURL(proxyUrl),
 		},
-		Timeout: 5 * time.Second,
+		Timeout: 10 * time.Second,
 	}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -48,44 +45,25 @@ func сheckProxy(ctx context.Context, proxy string, goodProxyChan chan string) {
 	defer resp.Body.Close()
 	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusNotFound {
 		select {
-		case <-ctx.Done():
-			return
 		case goodProxyChan <- proxy:
+		default:
 		}
 	}
 }
 
-func GetTgProxy() string {
-	c, err := getProxies()
+func GetTgProxyChan() chan string {
+	var err error
+	err = startProxyExtraction(proxyChannel)
 	if err != nil {
-		return ""
+		return nil
 	}
-	proxies := <-c
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	goodProxyChan := make(chan string)
-	var wg sync.WaitGroup
-	for _, val := range getNonRusProxies(proxies) {
-		v := val
-		wg.Go(func() {
-			сheckProxy(ctx, v, goodProxyChan)
-		})
-	}
-	allDone := make(chan struct{})
+	goodProxyChan := make(chan string, 20)
 	go func() {
-		wg.Wait()
-		close(allDone)
+		for proxies := range proxyChannel {
+			for _, val := range getNonRusProxies(proxies) {
+				go checkProxy(val, goodProxyChan)
+			}
+		}
 	}()
-
-	var finalProxy string
-
-	select {
-	case p := <-goodProxyChan:
-		finalProxy = p
-		cancel()
-	case <-allDone:
-		fmt.Println("All proxies are dead")
-	}
-	<-allDone
-	return finalProxy
+	return goodProxyChan
 }

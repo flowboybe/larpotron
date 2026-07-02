@@ -7,7 +7,11 @@ import (
 )
 
 func main() {
-	bot := buildBot()
+	startLifecycle()
+}
+
+func startLifecycle() {
+	bot := buildBotFirstTime()
 	fmt.Println("Bot started")
 
 	config := tgbotapi.NewUpdate(-1)
