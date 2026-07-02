@@ -1,20 +1,28 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 func main() {
-	startLifecycle()
+	bot := buildBotFirstTime()
+	for {
+		err := startLifecycle(bot)
+		if err == nil {
+			err = errors.New("Updates channel closed.")
+		}
+		fmt.Printf("Bot down.\nError: %v\nRestarting...", err)
+		bot = buildBot()
+	}
 }
 
-func startLifecycle() {
-	bot := buildBotFirstTime()
-	fmt.Println("Bot started")
+func startLifecycle(bot *tgbotapi.BotAPI) error {
+	fmt.Println("Bot started.")
 
-	config := tgbotapi.NewUpdate(-1)
+	config := tgbotapi.NewUpdate(0)
 	config.Timeout = 60
 
 	updates := bot.GetUpdatesChan(config)
@@ -25,7 +33,8 @@ func startLifecycle() {
 
 		_, err := bot.Send(msg)
 		if err != nil {
-			fmt.Printf("Error: %v\n", err)
+			return err
 		}
 	}
+	return nil
 }
